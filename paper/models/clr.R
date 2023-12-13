@@ -1,0 +1,51 @@
+rm(list = ls())
+library(haven)
+library(dplyr)
+
+
+setwd("/Users/Chris/ReestablishingAuthoritarianism/paper/")
+load("data/panel_data_2016.rda")
+datSSI <- read_dta("data/dataverse_files/2016 panel study.dta") 
+datNES <- read_dta("data/dataverse_files/merge201213nes.dta")   
+
+## Recodes and type conversion ##
+
+print("This is the lagged Regressor Model, Luttig's Model (SSI):")
+lm(w2repft   ~     w1authoritarianism + w1repft +
+     educ01 +  income01 +  age +  white +
+     black +  sex, data = datSSI) %>% summary
+lm(w2authoritarianism   ~     w1authoritarianism + w1repft +
+     educ01 +  income01 +  age +  white +
+     black +  sex, data = datSSI) %>% summary
+
+
+print("This is the lagged Regressor Model, Luttig's Model (NES):")
+lm(romneyft13   ~  w1authoritarianism + romneyft12 +
+     educ01 +  income01 +  age +  white +
+     black +  sex, data = datNES) %>% summary
+lm(w2authoritarianism   ~  w1authoritarianism + romneyft12 +
+     educ01 +  income01 +  age +  white +
+     black +  sex, data = datNES) %>% summary
+lm(w2authoritarianism   ~  w1authoritarianism + ft_rep12 +
+     educ01 +  income01 +  age +  white +
+     black +  sex, data = datNES) %>% summary 
+
+
+print("This is the lagged Regressor Model, 16-20 ANES:")
+
+#Make a function that recodes a variable to vary from 0 to 1
+
+zero.one<-function(x){
+  min.x<-min(x, na.rm=T)
+  max.x<-max(x-min.x, na.rm=T)
+  return((x-min.x)/max.x)
+}
+
+panel_data_2016 %>% 
+  mutate(authW1 = rowMeans(cbind(auth.1.2016, auth.2.2016, auth.3.2016, auth.4.2016), na.rm = TRUE)) %>%
+  mutate(authW2 = rowMeans(cbind(auth.1.2020, auth.2.2020, auth.3.2020, auth.4.2020), na.rm = TRUE)) %>%
+  mutate(authW1 = zero.one(authW1)) %>%
+  mutate(authW2 = zero.one(authW2)) 
+
+
+ls()

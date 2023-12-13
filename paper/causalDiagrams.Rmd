@@ -1,0 +1,162 @@
+
+# Causal Estimation, the Cross-Lagged Regression Model, and Authoritarianism: A Short Response to Luttig (2021)
+
+### Christopher Weber and Chad Westerland
+### University of Arizona
+
+## Introduction
+In an age of heightened polarization -- in which the political parties have grown more ideologically extreme and voters have sorted themselves into partisan camps following their ideological leanings -- individual difference variables previously linked with voter behavior are now highly collinear with partisan identification. It is precisely this reason that establishing causal relationships using observational data are difficult to estimate. In a recent book, Federico, Feldman and Weber (2021) demonstrate that authoritarianism -- the tendency to prioritize social conformity over personal autonomy -- is now structured by party identification.
+
+This finding extends prior work by Hetherington and Weiler (2009) whom argue that the ascendance of racial issues, law and order, feminism, and foreign affairs mobilized authoritarians to align themselves with the Republican party. 
+Throughtout the 1990s and early 2000s, authoritarian voters defected en masse from the Democratic Party, a process that Federico et al (2021) and Inglehart and Norris (2018) describe as a component giving rise to Donald Trump's authoritarian-inspired appeal.
+
+In a recent piece, Luttig (2021) challenges the common wisdom that authoritarianism, a highly stable individual difference factor -- that some have even shown to have a genetic component -- is endogenous to party identification. Luttig (2021). 
+Using two panel designs, Luttig demonstrates that authoritarianism is not causally prior to party preference; instead, party preference is causally prior to authoritarianism. Luttig relies on a common technique: the **Cross-Lagged Regression (CLR)** model. The CLR was pioneered in Campbell (1963) as well as Campbell and Stnaley (1963) and is an oft used, intuitive method to test **competing causal processes**.  Luttig demonstrates that changes in party preference in survey wave $t-1$ affect one's authoritarianism in Wave $t$. The reverse pattern, however, does not hold: Authoritarianism at $t-1$ does not predict a positive orientation towards the Republican Party at time $t$. Partisanship is endogenous to authoritarianism, not vice-versa. Luttig (2021) demonstrates this with two representative panel-structured datasets.
+
+One explanation for this departure of common wisdom regarding authoritarianism may be due to the nature of the authoritarianism scale, as measured by the Child Rearing Questionnaire (CRQ). The CRQ is a 4-item scale that asks respondents to choose between two competing values. While conceivable, it is difficult to imagine how a respondent's preference for "independence" or "respect for elders," or "obedience" versus "self-reliance: in children could be endogenous to their party preference. While this is plausible, the CRQ was developed precisely because of the well-argued and researched claim that measures of authoritarianism, like "Right-Wing Authoritarianism" (Altemeyer 1981) and the "Fascism (F) - Scale" (Adorno et al 1950) clearly reference political content. In the case of the CRQ, it was developed to measure authoritarianism without political content. Luttig's argument rests on a cueing process, whereby partisanship coalesces with exposure to like minded partisan elites, who may present authoritarian ideas. While this is a plausible explanation in a general sense -- some elites advocating authoritarianism -- it less plausible in the specific sense of the CRQ. The CRQ is not a measure of authoritarianism per se, but rather a measure of **child rearing preferences**. 
+
+In this short piece, we reconsider Luttig's findings using causal diagrams to generate various causal estimands. We argue that Luttig's findings do not adequately capture the complicated relationship between authoritarianism and its political expression. Yet, the problem does not solely reside in misplaced theory or particular data, but rather in the statistical method to identify causal processes, the Cross-Lagged Regression Model. As we will show, causal inference can be accomplished using these and similar data, but inference rests with careful theoretical reasoning about the data generating process, and the use of causal diagrams, not a data-driven appraoch commonly relied upon the the CLR.
+
+# The Cross Lagged Regression Model
+
+It is difficult to sort out causal mechanisms with cross-sectional observational data. It is also difficult to sort out causal mechanisms with panel data. Causal relationships require theorizing about the data generating process. Data, particularly when observational, and statistical procedures do not guarantee that researcher will identify a causal mechanism. 
+
+```{r}
+suppressMessages(library(dplyr))
+suppressMessages(library(haven))
+suppressMessages(library(dagitty))
+suppressMessages(library(ggdag))
+suppressMessages(library(ggplot2))
+```
+
+Consider the well-known Cross-Lagged Regression model (CLR).
+
+```{r, fig.width=6, fig.height=4, out.width="40%"}
+options(repr.plot.width = 2, repr.plot.height = 2)  # Set smaller plot size
+g <- dagitty("dag {
+    X1 -> Y2 
+    Y1 -> Y2
+    X1 -> X2 
+    Y1 -> X2
+
+}")
+coordinates(g) <- list(
+    x=c(U1=0.5, Y1=1,X1=1,Y2=2,X2=2, U2=3),
+    y=c(U1=1.5, Y1=1,X1=2,Y2=1,X2=2, U2=2.5) )
+ggdag(g, text = TRUE) + theme_dag() + ggtitle("Figure 1: The Cross-Lagged Regression (CLR) Model") 
+```
+
+This is a case of a Directed Acyclic Graph (DAG; Pearl 2001), as the panel structure is temporal, and the arrows are directed. The CLR is a common method to test competing causal processes. The CLR is a special case of the more general Autoregressive Distributed Lag model used in econometrics. Because there are two dependent variables, party and authoritarianism, it is common to then estimate two regression models, one with $x$ as a dependent variable, the other with $y$ as the dependent variable.
+
+\begin{eqnarray}
+y_{t=2, i}=a_0 + a_1 y_{t=1, i} + a_2 x_{t=1, i} + e_{1,i} \hspace{1in} (1)\\
+x_{t=2, i}=b_0 + b_1 y_{t=1, i} + b_2 x_{t=1, i} + e_{2,i} \hspace{1in} (2)\\
+\end{eqnarray}
+
+The assumption is often that due to the temporal ordering, if one were to estimate these two equations using traditional regression techniques, a large $a_2$ coefficient represents a causal relationship from $x_1\rightarrow y_2$; whereas a large $b_2$ coefficient translates to reversed  effect, i.e., $y_1 \rightarrow x2$. If $a_2$ is large and $b_2$ is effectively zero, it is tempting to conclude that $x$ causes $y$ but $y$ does not cause $x$. In both cases, we include the lagged value of the dependent variable, $y_{t=1, i}$ and $x_{t=1, i}$, to control for the effect of the dependent variable; each unit serves as their own control, or baseline. Should $a_2$ or $b_2$ reach conventional levels of statistical significance, it is tempting to conclude that a causal effect has been identified. Economists refer to this as Granger Causality, which is a statistical test of whether the lagged value of the independent variable can predict the dependent variable after controlling for the lagged value of the dependent variable.
+
+There are two issues that arise upon estimating this model. The first pertains to the empirical consequence of including a lagged realization of the independent variable in the regression model; the the second issue pertains to inclusion of a lagged dependent variable (Allison 1990). 
+
+Beginning with the independent variable, consider why one includes a lag and not the contemporaneous effect of $x_{2}$ on $y_{2}$ (and vice-versa). Causal inference is challenging with observational cross-sectional data, due to the researcher's inability to control for the effect of confounding covariates. This is why correct model specification is necessary. The **contemporaneous causal** effect cannot be reliably estimated because it is likely confounded by unobservable variables. It is tempting to leverage the temporal nature of the data to estimate a lagged causal effect in place of the contemporaneous causal effect. 
+
+Yet, Bellamare et al (2017) notes that a lagged realization of the independent variable does not necessarily improve one's ability to identify a causal effect. Instead, it moves the problem to identifying a lagged causal effect, effectively ignoring causal mechanisms that operate contemporaneously. Likewise, the inclusion of a lagged dependent variable is also problematic, for reasons well-documented in the literature (see Allison 1990). Introductory statistics textbooks present it in the context of autocorrelation, whereby including a lagged realization of the dependent variable will correlate with the error terms in equations (1) and (2), subsequently biasing parameter estimates and standard errors.
+
+These problems can be particularly pernicious and difficult to resolve with two-wave panel designs (Hamaker, Kuipers and Grasman (2015). In particular, when variables in the model are stable, which is most certainly the case with authoritarianism and party/candidate evaluation, it becomes increasingly difficult to identify causal effects. For this reason, scholars have increasingly moved to adopting the Random-Intercept Cross-Lagged panel regression model (RI-CLPM), in which the paramters in equation (1) and (2) are estimated, but the intercept terms randomly vary across units, accounting for with-person variation. Unfortunately, this technique is only available when more than two-waves of panel data are available, a circumstance that does not apply to Luttig (2021).
+
+We advocate a solution that is more qualitative in nature, by leveraging causal diagrams informed by \emph{a priori} assumptions to generate causal estimands of interest. As we will show, the two-wave CLR model afford us limited ability to identity causal effects, and through careful consideration of the causal diagrams to identity the effects of authoritarianism on partisanship (and vice-versa), we find little evidence to support Luttig's claim that authoritarianism is endogenous to party. Before outlining our approach, we first discuss the logic of causal diagrams to identify causal effects.
+
+# Causal Inference using Directed Acyclic Graphs
+
+Identitying causal effects with observational data is difficult due to the presence of confounding variables. The problem is not limited to cross-sectional data, and also apply to observational panel data (though occasionally for different reasons). Consider the causal diagram in Figure 2, a slight modification on the CLR model presented in Figure 1. In this case, we have added a confounder set $U$ that is correlated with both $x_1$ and $y_1$, as well as $x_2$ and $y_2$.
+
+
+```{r, fig.width=6, fig.height=4, out.width="40%"}
+g <- dagitty("dag {
+    X1 -> Y2 
+    Y1 -> Y2
+    X1 -> X2 
+    Y1 -> X2
+    U -> X1
+    U -> Y1
+    U -> X2
+    U -> Y2
+    U <-> U
+}")
+coordinates(g) <- list(
+    x=c( Y1=1,X1=1,Y2=2,X2=2, U=1.5),
+    y=c( Y1=1,X1=2,Y2=1,X2=2, U=2.4) )
+ggdag(g, text = TRUE) + theme_dag() + ggtitle("Figure 2: The Cross-Lagged Regression (CLR) Model.\nConfounding by U")
+```
+
+In this case, the confounder set creates a "backdoor path" from U to $x_2$ and $y_2$ through $x_1$ and $y_1$. Ignoring the confounder set $U$ will bias the estimates of the coefficients estimated in the model; this is the notion of "spurious regression" whereby we may even estimate a relationship when none exist. 
+
+The solution advocated in most textbooks is to include the confounder set $U$ in one's regression model. This is also known as "back-door adjustment" as we condition on this confounder set blocking any paths that run through $U$. This is reason researchers often include a set of control variables, occasionally an unwieldy set, a "kitchen sink" of numerous variables that may or may not be controls (King, 20??). Luttig (2021), for instance, controls for sex, education, income, race/ethnicity. These variables are likely to be correlated with both authoritarianism and party/candidate evaluation, and thus should be included in the regression model.
+
+The figure below demonstrates that including the confounder set $U$ blocks the backdoor path from $x_2$ to $y_2$ through $x_1$ and $y_1$.
+
+```{r, fig.width=6, fig.height=4, out.width="40%"}
+
+ggdag_adjustment_set(g, exposure = "Y1", outcome = "Y2", shadow = "TRUE") + theme_dag() + ggtitle("Figure 3: We need to condition on:")
+
+```
+
+But what if prior research indicates that $U$ isn't a common cause of both $x$ and $y$, but rather a cause of $y$. Also, assume a causal arrow
+between $x_1$ and $y_1$ and $x_2$ and $y_2$? This is contemporaneous causal correlation, which is not absent from data because a temporal component is specified. So, we also draw an arrow from $x_1 \rightarrow y_1$ and $x_2 \rightarrow y_2$. 
+
+Now the causal diagram becomes:
+```{r, fig.width=6, fig.height=4, out.width="40%"}    
+g <- dagitty("dag {
+    X1 -> Y2 
+    X2 -> Y2 
+    Y1 -> Y2
+    X1 -> X2 
+    Y1 -> X2
+    U -> Y1
+    U -> Y2
+    X1 -> Y1
+}")
+coordinates(g) <- list(
+    x=c( Y1=1,X1=1,Y2=2,X2=2, U=1.5),
+    y=c( Y1=1,X1=2,Y2=1,X2=2, U=2.4) )
+ggdag(g, text = TRUE) + theme_dag() + ggtitle("Figure 4: The Cross-Lagged Regression (CLR) Model.\nContemporaneous Causal Effect")
+```
+
+In this case, the problem is somewhat different. $y_1$ and $y_2$ are "colliders" in the model, and conditioning on $y_1$ -- the lag -- will open a backdoor path from $U$ to $y_2$ and $x_2$, a problem known as "collider bias" (Pearl 2001). In this case, we are better served by excluding $y_1$ from the estimated equation, adopting a simpler model, $y_2 = \beta_1 x_1 + \epsilon$.
+
+
+## Data, Models and Estimation
+
+As Luttig notes:
+
+**But previous analyses of the authoritarian divide separating Republicans from Democrats, and Trump supporters from opponents, rest primarily on correlational analyses that are unable to determine whether authoritarianism shapes partisan preferences, or whether
+political attitudes may instead shape how respondents answer the authoritarianism questionnaire.
+This is problematic, as recent research raises questions about the validity, over-time stability, and
+exogeneity of the child rearing measure of authoritarianism** (Luttig, 2021, 3).
+
+We will show that more careful reasoning about the data and CLR necessitates a reconsideration of Luttig's reconsideration.
+
+There are three datasets, all located in /data
+
+* /data/panel_data.2016.rda. This is the 2016-2020 ANES
+* /data/dataverse_files/merge201214nes.dta This is the 2012-13 ANES reported in Luttig (2021)
+* /data/dataverse_files/2016 panel study.dta This is the SSI data reported in Luttig (2021)
+
+/data/dataverse_files/ also includes Luttig's (2021) replication code.
+
+
+## Replication of Luttig (2021)
+
+Models and simulations are included in /models
+
+* clr.R is the CLR model reported by Luttig (2021), but also includes the 2016-2020 ANES.
+* gEst.R includes a a simple g-estimator to estimate the causal effect of authoritarianism on candidate evaluation. The logic here is relatively straightforward. This is explained well in Hernan and Robins (2023). The estimation steps are:
+   1) Use background variables to generate a propensity score, create inverse probability weights of treatment.
+   2) Estimate the treatment effect using the inverse probability weights.
+   3) Calculate the average treatment effect of authoritarianism on candidate evaluation, marginalizing over the data. 
+* Much of the problem with the CLR in Luttig (2021) is that.
+   1) Match ANES1213 respondents with ANES2016 respondents. Use the match to impute 2012 scores for the 2016 data, as-if such data existed.
+   2) Estimate a RI-CLR model using the imputed data, to account for within-unit variation. 
+* Simulate data and conduct sensitivity analysis
+   
+
+
