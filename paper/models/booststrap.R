@@ -1,0 +1,1 @@
+# Write the bootstrapping routine to esimate SEs for the treatment effects

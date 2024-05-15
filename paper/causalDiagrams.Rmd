@@ -1,8 +1,12 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+  header-includes: \usepackage{setspace}\doublespacing
+---
 
 # Causal Estimation, the Cross-Lagged Regression Model, and Authoritarianism: A Short Response to Luttig (2021)
 
-### Christopher Weber and Chad Westerland
-### University of Arizona
 
 ## Introduction
 In an age of heightened polarization -- in which the political parties have grown more ideologically extreme and voters have sorted themselves into partisan camps following their ideological leanings -- individual difference variables previously linked with voter behavior are now highly collinear with partisan identification. It is precisely this reason that establishing causal relationships using observational data are difficult to estimate. In a recent book, Federico, Feldman and Weber (2021) demonstrate that authoritarianism -- the tendency to prioritize social conformity over personal autonomy -- is now structured by party identification.
@@ -123,6 +127,89 @@ ggdag(g, text = TRUE) + theme_dag() + ggtitle("Figure 4: The Cross-Lagged Regres
 
 In this case, the problem is somewhat different. $y_1$ and $y_2$ are "colliders" in the model, and conditioning on $y_1$ -- the lag -- will open a backdoor path from $U$ to $y_2$ and $x_2$, a problem known as "collider bias" (Pearl 2001). In this case, we are better served by excluding $y_1$ from the estimated equation, adopting a simpler model, $y_2 = \beta_1 x_1 + \epsilon$.
 
+### Emprical Problems
+
+Analysts who use the CLR attempt to sidestep contemporaneous causality -- a difficult to defend concept when using observational data -- by using lagged effects. The idea is relatively simple and elegant: if we measure $x$ at time $t$ and $y$ at time $t+1$, then we can be confident that $x$ is not caused by $y$. Any effect of of $x$ that precedes $y$ must be causal. While this may appear reasonable at face-value, it may be fallacious for several reasons.
+
+### Contemporaneous Causal Effects
+
+```{r, fig.width=6, fig.height=4, out.width="40%"}    
+g <- dagitty("dag {
+    X1 -> Y2 
+    X1 -> Y1[style=dashed]
+    Y1 -> Y2
+    X1 -> X2
+    Y1 -> X2
+    X2 -> Y2
+
+}")
+coordinates(g) <- list(
+    x=c( Y1=1,X1=1,Y2=2,X2=2, U=1.5),
+    y=c( Y1=1,X1=2,Y2=1,X2=2, U=2.4) )
+ggdag(g, text = TRUE) + theme_dag() + ggtitle("Figure XX: The Cross-Lagged Regression (CLR) Model.\nContemporaneous Causal Effect")
+```
+
+There is nothing inherently problematic about this causal effect. But the CLR in this circumstance is capturing an effect that does not necessarily comport to what Luttig (2021) describes. By conditioning on both $X1$ and $Y1$ though, we are not obtaining the total effect of $X1$ on $Y2$. Instead, we are capturing the **direct effect** of $X1$ on $Y2$ after accounting for $Y2$, and where $Y2$ mediates the relationship. $Y1$ is an intervening, mediating variable; it structures the effect of $X1$. Put another way, $X1$ may in fact have a rather large and substantial effect on $X2$. If we think that authoritarianism does not directly influence party evaluations at time $t+1$ because its effects are mediated by party evaluations at time $t$, then we are not capturing the total effect of authoritarianism on party evaluations in the CLR. In fact, this story is largely consistent with Federico, Feldman and Weber (2023) who show that authoritarianism does not have direct effects in many circumstances, precisely because authoritarians have sorted themselves into partisan camps and have adopted a partisan lens in which the world is viewed.
+
+The problem, however, is when unobserved variables also predict $Y1$. Such is the case below,
+
+```{r, fig.width=6, fig.height=4, out.width="40%"}    
+g <- dagitty("dag {
+    X1 -> Y2 
+    X2 -> Y2 
+    Y1 -> Y2
+    X1 -> X2 
+    Y1 -> X2
+    U -> Y1
+    U -> Y2
+    U -> X1
+    U -> X2
+    X1 -> Y1
+}")
+coordinates(g) <- list(
+    x=c( Y1=1,X1=1,Y2=2,X2=2, U=1.5),
+    y=c( Y1=1,X1=2,Y2=1,X2=2, U=2.4) )
+ggdag(g, text = TRUE) + theme_dag() + ggtitle("Figure 4: The Cross-Lagged Regression (CLR) Model.\nContemporaneous Causal Effect and Confounding.\nThe backdoor path of U.")
+```
+
+The problem is now not just in interpretation, but also estimation. Adding a causal arrow from U to Y1 and Y2, we have a confounding variable. And this confounding variable creates a bias in the CLR model. By conditioning on $Y1$ -- a collider -- we open a backdoor path from $U$ to $Y2$ and $X2$. The effect of these variables, along with authoritarianism are captured in the estimated coefficient. This, however, is clearly not what we want. We would like to know the effect of authoritarianism on party evaluations, not the effect of authoritarianism, $Y1$ and $U$ on party evaluations. This is case of "m-bias", because we are conditioning on an effect that is a consequence of $X1$ but also unbobserved variables $U$. The CLR model will estimate the effect of $X1$ on $Y2$, but it will be an incorrect estimate. The bias will bend in the direction of the confounding variable in relation to the observed variables. If $U$ is positively correlated with $X1$ and $Y2$, then the CLR will overestimate the effect of $X1$ on $Y2$. If $U$ is negatively correlated with $X1$ and $Y2$, then the CLR will underestimate the effect of $X1$ on $Y2$. In either case, the CLR will be biased. 
+
+This problem is well-established in the causal effects literature, as it represents the potentially problematic consequences of conditioning on a post-treatment variable, in this case, $Y1$, since $X1 \rightarrow Y1$. If other variables are left unspecified, then this "conditioning" exercise gives misleading results. 
+
+Together, not only must we consider the types of effects in our model -- a matter of interpretation -- we must also reason about the underlying causal structure in the data. Failing to consider the unobervable data may undermine our ability to accurately estimate both indirect and direct effects.
+
+### Lagged Effects
+
+Let us assume there are no contemporaneous causal effects, and the CLR is generally correctly specified, wherein the only causal parameters are lagged effects. Figure 1, in other words, accurately captures the causal structure of the data. The assumption of the model is that $X1$ and $y1$ are exogeneous: They both predict $Y2$ but do not predict each other. This is generally implausible. Imagine a circumstance, for instance, where we were to observe an additional wave of panel data, where,
+
+```{r, fig.width=6, fig.height=4, out.width="40%"}    
+g <- dagitty("dag {
+    X1 -> Y2 
+    Y1 -> Y2
+    X1 -> X2 
+    Y1 -> X2
+    X0 -> X1 [color=gray]
+    Y0 -> Y1 [color=gray]
+    X0 -> Y1 [color=gray]
+    Y0 -> X1 [color=gray]
+}")
+
+coordinates(g) <- list(
+    x=c( Y0 = 0, X0 = 0, Y1=1,X1=1,Y2=2,X2=2, U=1.5),
+    y=c(Y0 = 1, X0 = 2, Y1=1,X1=2,Y2=1,X2=2, U=2.4) )
+
+ggdag(g, text = TRUE) + theme_dag() + ggtitle("Figure 4: The Cross-Lagged Regression (CLR) Model.\nContemporaneous Causal Effect and Confounding.\nThe backdoor path of U.")
+```
+
+In this case, the CLR model is not identified. The reason is that $X1$ and $Y1$ are not exogeneous. They are both predicted by $X0$ and $Y0$. Conditioning on $Y1$ and $X1$ in our model opens a backdoor path from $X0$ and $Y0$ to $Y2$ and $X2$. Thus, we should acknowledge that -- again, because the data are observational in nature -- the parameters in the CLR model may not coincide to the parameters or effects as interpreted in a non-causal regression model The non-exogeneity of the lagged variables is a problem for the CLR model. The problem becomes intractable when some common cause of these variables is ignored. A confounder variable
+
+### 
+
+
+
+
+
+The idea is that the lagged variable is measured prior to the outcome variable, and thus the lagged variable cannot be caused by the outcome variable. This is the logic of the CLR model, and the reason why the CLR model is often used in panel data settings.
 
 ## Data, Models and Estimation
 
@@ -133,7 +220,7 @@ political attitudes may instead shape how respondents answer the authoritarianis
 This is problematic, as recent research raises questions about the validity, over-time stability, and
 exogeneity of the child rearing measure of authoritarianism** (Luttig, 2021, 3).
 
-We will show that more careful reasoning about the data and CLR necessitates a reconsideration of Luttig's reconsideration.
+We will show that more careful reasoning about the data and CLR necessitates a reconsideration of Luttig's findings.
 
 There are three datasets, all located in /data
 
@@ -157,6 +244,46 @@ Models and simulations are included in /models
    1) Match ANES1213 respondents with ANES2016 respondents. Use the match to impute 2012 scores for the 2016 data, as-if such data existed.
    2) Estimate a RI-CLR model using the imputed data, to account for within-unit variation. 
 * Simulate data and conduct sensitivity analysis
-   
+
+## Simulate Data 
+
+Assume this model, where Z represent a set of exogenous covariates, and U represents a set of unobserved confounders. 
+
+
+```{r, fig.width=6, fig.height=4, out.width="40%"}    
+g <- dagitty("dag {
+    X1 -> Y2 
+    Y1 -> Y2
+    Z  -> Y2 [color=gray]
+    Z  -> Y1 [color=gray]
+    Z  -> X1 [color=gray]
+    U  -> Y2 [color=gray]
+    U  -> Y1 [color=gray]
+    U  -> X1 [color=gray]
+
+    }")
+
+coordinates(g) <- list(
+    x=c(Z = 0,  Y1=1,X1=1,Y2=2, U=2.5),
+    y=c(Z = 0,  Y1=1,X1=2,Y2=1, U=2) )
+
+ggdag(g, text = TRUE) + theme_dag() + ggtitle("Figure 4: The Cross-Lagged Regression (CLR) Model.\nContemporaneous Causal Effect and Confounding.\nThe backdoor path of U.")
+```
+
+Conditioning on Y1 or X1 opens a backdoor path from U to Y2. The structural model:
+
+\begin{eqnarray}
+y_{1, i}=  a_1 z_{i} + a_2 u_{i} +  e_{1,i} \hspace{1in} (1)\\
+x_{1, i}=  b_1 z_{i} + b_2 u_{i} +  e_{2,i} \hspace{1in} (2)\\
+y_{2, i}=  c_1 y_{1, i} + c_2 x_{1, i} + c_3 z_{i} + c_4 u_{i} +  e_{3,i} \hspace{1in} (3)\\
+\end{eqnarray}
+
+If both U and Z are observed, then the causal estimand is 
+
+\begin{eqnarray}
+E(Y^{X1=1} - Y^{X1=0} ) = E_{Z, U} [E(Y|X1=0, Z, U) - [E(Y|X1=0, Z, U)] = c_2\\
+& E_{Z} [E(Y|X1=0, Z) - [E(Y|X1=0, Z)] = c_2 + \\
+\end{eqnarray}
+
 
 
